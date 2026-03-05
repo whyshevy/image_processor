@@ -23,7 +23,7 @@ services:
       - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-change-me-to-random-string}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4-1}
       - DB_DRIVER=ODBC Driver 17 for SQL Server
       - DB_SERVER=${DB_SERVER}
       - DB_NAME=${DB_NAME:-ProcessedMedia}
@@ -38,6 +38,8 @@ services:
       # ---- Mount your Synology shared folders here (read-only recommended) ----
       # Syntax: /volume1/<shared_folder>:/media/<name>:ro
       - /volume1/photo:/media/photo:ro
+      - /volume1/Archive:/media/Archive:ro
+      - /volume1/upload:/media/upload:ro
       # - /volume1/homes:/media/homes:ro
       # - /volume1/video:/media/video:ro
       # Add as many shared folders as you need.
