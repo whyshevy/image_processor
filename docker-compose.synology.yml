@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  image-processor:
+    build: .
+    container_name: image-processor
+    restart: unless-stopped
+
+    # --- Networking ---
+    # Option A (recommended): host network — container shares Synology's network
+    # stack, including Tailscale. No port mapping needed; app is at port 5050.
+    network_mode: host
+
+    # Option B: bridge network with explicit port mapping.
+    # Comment out 'network_mode: host' and uncomment the lines below.
+    # Make sure DB_SERVER is reachable from the container.
+    # ports:
+    #   - "5050:5050"
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-change-me-to-random-string}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
+      - DB_DRIVER=ODBC Driver 17 for SQL Server
+      - DB_SERVER=${DB_SERVER}
+      - DB_NAME=${DB_NAME:-ProcessedMedia}
+      - DB_USER=${DB_USER:-SA}
+      - DB_PASSWORD=${DB_PASSWORD}
+      # Root path inside the container where Synology shared folders are mounted.
+      - MEDIA_ROOT=/media
+
+    volumes:
+      - ./data/uploads:/app/uploads
+      - ./data/processed:/app/processed
+      # ---- Mount your Synology shared folders here (read-only recommended) ----
+      # Syntax: /volume1/<shared_folder>:/media/<name>:ro
+      - /volume1/photo:/media/photo:ro
+      # - /volume1/homes:/media/homes:ro
+      # - /volume1/video:/media/video:ro
+      # Add as many shared folders as you need.

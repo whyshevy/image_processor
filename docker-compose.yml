@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  image-processor:
+    build: .
+    container_name: image-processor-web
+    restart: unless-stopped
+    ports:
+      - "5050:5050"
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=change-me-to-random-string
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
+      - DB_DRIVER=ODBC Driver 17 for SQL Server
+      - DB_SERVER=host.docker.internal,1433
+      - DB_NAME=ProcessedMedia
+      - DB_USER=SA
+      - DB_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - ./data/uploads:/app/uploads
+      - ./data/processed:/app/processed

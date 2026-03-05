@@ -1,0 +1,11 @@
+# Image Processor ignore for Docker build
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.git/
+.gitignore
+*.md
+_setup_db.py
+help.py

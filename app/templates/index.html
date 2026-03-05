@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <header>
+        <h1>🖼️ Image Processor <span class="badge">AI</span></h1>
+    </header>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- ============ STEP 1: Directory ============ -->
+    <section class="card" id="section-scan">
+        <h2>1. Оберіть папку з фото</h2>
+
+        <div class="drop-zone" id="drop-zone">
+            <div class="drop-zone-icon">📂</div>
+            <div class="drop-zone-text">Перетягніть папку сюди або просто натисніть на область</div>
+            <div class="drop-zone-hint">або скористайтесь полем нижче</div>
+        </div>
+
+        <div class="input-row">
+            <input type="text" id="dir-input" placeholder="C:\Photos\MyFolder" autocomplete="off" />
+            <button id="btn-scan" class="btn btn-primary">Сканувати</button>
+        </div>
+        <p id="scan-error" class="error hidden"></p>
+    </section>
+
+    <!-- ============ STEP 2: File list ============ -->
+    <section class="card hidden" id="section-files">
+        <h2>2. Оберіть файли для обробки</h2>
+
+        <div class="stats-row">
+            <span>Знайдено: <strong id="found-total">0</strong></span>
+            <span id="ext-summary"></span>
+            <span>Обрано: <strong id="selected-count">0</strong></span>
+        </div>
+
+        <div class="select-controls">
+            <button class="btn btn-sm" id="btn-select-all">Вибрати всі</button>
+            <button class="btn btn-sm" id="btn-select-none">Зняти всі</button>
+            <button class="btn btn-sm" id="btn-invert">Інвертувати</button>
+        </div>
+
+        <div class="file-list-wrap">
+            <ul id="file-list"></ul>
+        </div>
+
+        <button id="btn-start" class="btn btn-success" disabled>Старт</button>
+    </section>
+
+    <!-- ============ STEP 3: Progress ============ -->
+    <section class="card hidden" id="section-progress">
+        <h2>3. Прогрес обробки</h2>
+
+        <div class="progress-bar-wrap">
+            <div class="progress-bar" id="progress-bar" style="width: 0%">0%</div>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Усього (нових)</span>
+                <span class="info-value" id="info-total">0</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Готово</span>
+                <span class="info-value" id="info-done">0</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Пропущено</span>
+                <span class="info-value" id="info-skipped">0</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Пройшло</span>
+                <span class="info-value" id="info-elapsed">00:00</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Залишилось (ETA)</span>
+                <span class="info-value" id="info-eta">—</span>
+            </div>
+            <div class="info-item wide">
+                <span class="info-label">Поточний файл</span>
+                <span class="info-value" id="info-current">—</span>
+            </div>
+        </div>
+
+        <p id="status-text" class="status-text"></p>
+
+        <div class="btn-row">
+            <button id="btn-stop" class="btn btn-danger">Зупинити</button>
+            <button id="btn-view-data" class="btn btn-primary hidden">Переглянути дані в БД</button>
+        </div>
+    </section>
+
+    <!-- ============ STEP 4: Data View ============ -->
+    <section class="card hidden" id="section-data">
+        <h2>4. Оброблені записи</h2>
+        <div class="table-wrap">
+            <table id="data-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Файл</th>
+                        <th>Розмір</th>
+                        <th>Опис (AI)</th>
+                        <th>UKR Keywords</th>
+                        <th>EN Keywords</th>
+                        <th>Роздільність</th>
+                        <th>MD5</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <p class="status-text" id="data-count"></p>
+    </section>
+
+    <!-- ============ Folder Browser Modal ============ -->
+    <div class="modal-overlay hidden" id="folder-browser-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>📁 Оберіть папку</h3>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-breadcrumb" id="modal-breadcrumb"></div>
+            <div class="modal-body" id="modal-dir-list"></div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" id="modal-cancel">Скасувати</button>
+                <button class="btn btn-sm btn-primary" id="modal-select">Обрати цю папку</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
