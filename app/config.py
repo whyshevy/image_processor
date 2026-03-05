@@ -28,7 +28,7 @@ class Config:
     KEYWORDS_LIMIT = 20
 
     # MS SQL Server
-    DB_DRIVER = os.getenv("DB_DRIVER", "ODBC Driver 17 for SQL Server")
+    DB_DRIVER = os.getenv("DB_DRIVER", "ODBC Driver 18 for SQL Server")
     DB_SERVER = os.getenv("DB_SERVER", "192.168.1.100,1433")
     DB_NAME = os.getenv("DB_NAME", "ProcessedMedia")
     DB_USER = os.getenv("DB_USER", "sa")

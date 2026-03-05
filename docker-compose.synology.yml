@@ -23,8 +23,8 @@ services:
       - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-change-me-to-random-string}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4-1}
-      - DB_DRIVER=ODBC Driver 17 for SQL Server
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4.1}
+      - DB_DRIVER=ODBC Driver 18 for SQL Server
       - DB_SERVER=${DB_SERVER}
       - DB_NAME=${DB_NAME:-ProcessedMedia}
       - DB_USER=${DB_USER:-SA}
