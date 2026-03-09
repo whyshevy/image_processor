@@ -14,30 +14,27 @@ _resolved_driver: str | None = None
 def _resolve_driver(configured: str) -> str:
     """Return a working ODBC driver string.
 
-    If the configured driver name (e.g. 'ODBC Driver 18 for SQL Server') works,
-    return it as-is.  Otherwise, locate the .so file on disk and return its
-    absolute path so pyodbc can load it directly.
+    On Linux, locate the actual .so file on disk and return its absolute path
+    so pyodbc loads it directly — this bypasses odbcinst.ini entirely and is
+    the most reliable approach inside Docker containers.
+    On Windows, return the configured driver name as-is.
     """
     global _resolved_driver
     if _resolved_driver is not None:
         return _resolved_driver
 
-    # Check if configured name is already resolvable via odbcinst
-    available = [d for d in pyodbc.drivers() if "SQL Server" in d]
-    if configured in available:
-        _resolved_driver = configured
-        return _resolved_driver
+    # On Linux: find the .so file and use its path directly
+    if os.name != 'nt':
+        so_files = sorted(glob.glob("/opt/microsoft/**/libmsodbcsql*.so.*", recursive=True))
+        existing = [f for f in so_files if os.path.isfile(f)]
+        if existing:
+            logger.info("Using ODBC driver .so directly: %s", existing[0])
+            _resolved_driver = existing[0]
+            return _resolved_driver
+        logger.error("No ODBC .so file found under /opt/microsoft/. "
+                     "Available pyodbc drivers: %s", pyodbc.drivers())
 
-    # Fallback: find the .so file directly
-    so_files = sorted(glob.glob("/opt/microsoft/**/libmsodbcsql*.so.*", recursive=True))
-    if so_files:
-        logger.warning("Configured driver '%s' not found in pyodbc.drivers(); "
-                        "using .so path: %s", configured, so_files[0])
-        _resolved_driver = so_files[0]
-        return _resolved_driver
-
-    # Last resort — return configured name and let pyodbc raise a clear error
-    logger.error("No ODBC driver found. Available drivers: %s", pyodbc.drivers())
+    # Windows or fallback — use the configured driver name
     _resolved_driver = configured
     return _resolved_driver
 

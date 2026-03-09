@@ -3,25 +3,24 @@
 
 ODBCINST="/etc/odbcinst.ini"
 
-if [ -f "$ODBCINST" ]; then
-    # Read the Driver= path currently configured
-    CONFIGURED=$(grep -oP '^Driver\s*=\s*\K.*' "$ODBCINST" | head -1)
+echo "[entrypoint] Checking ODBC driver..."
 
-    if [ -n "$CONFIGURED" ] && [ ! -f "$CONFIGURED" ]; then
-        echo "[entrypoint] ODBC driver not found at configured path: $CONFIGURED"
+# Find the actual .so file on disk
+ACTUAL=$(find /opt/microsoft/ -name "libmsodbcsql*.so.*" -type f 2>/dev/null | head -1)
 
-        # Try to locate the real .so file
-        ACTUAL=$(find /opt/microsoft/ -name "libmsodbcsql*.so.*" -type f 2>/dev/null | head -1)
+if [ -n "$ACTUAL" ]; then
+    echo "[entrypoint] Found ODBC driver: $ACTUAL"
 
-        if [ -n "$ACTUAL" ]; then
-            echo "[entrypoint] Found driver at: $ACTUAL — updating $ODBCINST"
-            sed -i "s|^Driver\s*=.*|Driver=$ACTUAL|" "$ODBCINST"
-        else
-            echo "[entrypoint] WARNING: No ODBC driver .so found under /opt/microsoft/"
-        fi
-    else
-        echo "[entrypoint] ODBC driver OK: $CONFIGURED"
+    # Always overwrite odbcinst.ini to ensure it points to the real file
+    if [ -f "$ODBCINST" ]; then
+        sed -i "s|^Driver[[:space:]]*=.*|Driver=$ACTUAL|" "$ODBCINST"
+        echo "[entrypoint] Updated $ODBCINST:"
+        cat "$ODBCINST"
     fi
+else
+    echo "[entrypoint] WARNING: No ODBC driver .so found under /opt/microsoft/"
+    echo "[entrypoint] Contents of /opt/microsoft/:"
+    find /opt/microsoft/ -type f 2>/dev/null || echo "  (directory not found)"
 fi
 
 # Execute the main command (passed as CMD from Dockerfile)

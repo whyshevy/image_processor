@@ -20,7 +20,7 @@ RUN apt-get update && \
     ACTUAL_SO=$(find /opt/microsoft/ -name "libmsodbcsql*.so.*" -type f | head -1) && \
     if [ -n "$ACTUAL_SO" ]; then \
         echo "Found ODBC driver: $ACTUAL_SO"; \
-        sed -i "s|^Driver\s*=.*|Driver=$ACTUAL_SO|" /etc/odbcinst.ini; \
+        sed -i "s|^Driver[[:space:]]*=.*|Driver=$ACTUAL_SO|" /etc/odbcinst.ini; \
     else \
         echo "ERROR: No ODBC .so file found!" && exit 1; \
     fi && \
