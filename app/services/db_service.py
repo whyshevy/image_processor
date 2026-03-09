@@ -1,14 +1,52 @@
 """Database service — MS SQL Server connection and InProgressMedia table operations."""
 
+import glob
+import logging
 import os
 
 import pyodbc
 
+logger = logging.getLogger(__name__)
+
+_resolved_driver: str | None = None
+
+
+def _resolve_driver(configured: str) -> str:
+    """Return a working ODBC driver string.
+
+    If the configured driver name (e.g. 'ODBC Driver 18 for SQL Server') works,
+    return it as-is.  Otherwise, locate the .so file on disk and return its
+    absolute path so pyodbc can load it directly.
+    """
+    global _resolved_driver
+    if _resolved_driver is not None:
+        return _resolved_driver
+
+    # Check if configured name is already resolvable via odbcinst
+    available = [d for d in pyodbc.drivers() if "SQL Server" in d]
+    if configured in available:
+        _resolved_driver = configured
+        return _resolved_driver
+
+    # Fallback: find the .so file directly
+    so_files = sorted(glob.glob("/opt/microsoft/**/libmsodbcsql*.so.*", recursive=True))
+    if so_files:
+        logger.warning("Configured driver '%s' not found in pyodbc.drivers(); "
+                        "using .so path: %s", configured, so_files[0])
+        _resolved_driver = so_files[0]
+        return _resolved_driver
+
+    # Last resort — return configured name and let pyodbc raise a clear error
+    logger.error("No ODBC driver found. Available drivers: %s", pyodbc.drivers())
+    _resolved_driver = configured
+    return _resolved_driver
+
 
 def get_connection(config: dict) -> pyodbc.Connection:
     """Create a connection to MS SQL Server using config dict."""
+    driver = _resolve_driver(config['DB_DRIVER'])
     conn_str = (
-        f"DRIVER={{{config['DB_DRIVER']}}};"
+        f"DRIVER={{{driver}}};"
         f"SERVER={config['DB_SERVER']};"
         f"DATABASE={config['DB_NAME']};"
         f"UID={config['DB_USER']};"
