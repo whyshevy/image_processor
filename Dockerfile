@@ -5,7 +5,12 @@ RUN ARCH=$(dpkg --print-architecture) && \
     echo "Building for architecture: $ARCH"
 
 # Install ODBC Driver 18 for SQL Server (Linux) — supports amd64 & arm64
+# Step 1: Install build-time AND runtime dependencies separately
 RUN apt-get update && \
+    # Runtime deps that must stay: unixodbc, Kerberos, OpenSSL
+    apt-get install -y --no-install-recommends \
+        unixodbc libgssapi-krb5-2 libltdl7 && \
+    # Build-time deps (will be removed later)
     apt-get install -y --no-install-recommends \
         curl gnupg2 apt-transport-https unixodbc-dev gcc g++ && \
     curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg && \
@@ -25,7 +30,11 @@ RUN apt-get update && \
         echo "ERROR: No ODBC .so file found!" && exit 1; \
     fi && \
     echo "=== odbcinst.ini ===" && cat /etc/odbcinst.ini && \
-    apt-get purge -y --auto-remove curl gnupg2 apt-transport-https gcc g++ && \
+    # Verify the driver can be loaded (check shared lib dependencies)
+    echo "=== ldd check ===" && ldd "$ACTUAL_SO" && \
+    # Remove only build-time deps (NOT --auto-remove, to keep runtime libs)
+    apt-get purge -y curl gnupg2 apt-transport-https gcc g++ unixodbc-dev && \
+    apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
