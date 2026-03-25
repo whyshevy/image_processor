@@ -1,6 +1,6 @@
-# Розгортання Image Processor на Synology NAS
+# Deployment to Synology NAS via GitHub and SSH
 
-## Архітектура деплою
+## Scheme Overview
 
 ```
      PC                Git repo (GitHub)              Synology NAS
@@ -17,17 +17,21 @@
                                                     └──────────────┘
 ```
 
+- **Step 1:** You commit and push from your PC to GitHub.
+- **Step 2:** You trigger deployment via SSH (using PuTTY or another SSH client).
+- **Step 3:** The Synology connects to GitHub, updates code, and builds/runs the Docker container.
+
 ---
 
-## Швидкий деплой (одна команда)
+## Quick Deploy (Single Command)
 
-Після початкового налаштування (див. нижче) весь деплой виконується однією командою:
+After initial setup (see below), deployment is performed with a single command:
 
 ```powershell
 # Windows (PowerShell)
 .\deploy.ps1
 
-# або з явним repo
+# or with explicit repo
 .\deploy.ps1 -GitRepo "https://github.com/youruser/image_processor.git"
 ```
 
@@ -36,34 +40,34 @@
 bash deploy.sh
 ```
 
-Скрипт автоматично:
-1. Коммітить і пушить зміни в GitHub
-2. Підключається по SSH до Synology
-3. Клонує (або оновлює) репозиторій
-4. Збирає Docker образ
-5. Перезапускає контейнер
+The script will automatically:
+1. Commit and push changes to GitHub.
+2. Connect via SSH to Synology.
+3. Clone (or update) the repository on Synology.
+4. Build the Docker image.
+5. Restart the container.
 
 ---
 
-## Вимоги
+## Requirements
 
-- **Synology NAS** з процесором Intel/AMD (x86-64). ARM моделі **не підтримуються** (ODBC Driver 17 лише для x86-64).
-- **Container Manager** (раніше — Docker) встановлений з Package Center.
-- **Git** встановлений на Synology (Package Center або Entware).
-- **Tailscale** — встановлений на Synology і підключений до тієї ж мережі, що й SQL Server.
-- **SSH** доступ до Synology (увімкнути в Control Panel → Terminal & SNMP).
+- **Synology NAS** with Intel/AMD (x86-64) CPU. **ARM models are not supported** (ODBC Driver 17 is x86-64 only).
+- **Container Manager** (formerly Docker) installed via Package Center.
+- **Git** installed on Synology (via Package Center or Entware).
+- **Tailscale** installed on Synology and connected to the same network as your SQL Server.
+- **SSH** access enabled on Synology (Control Panel → Terminal & SNMP).
 
 ---
 
-## Початкове налаштування
+## Initial Setup
 
-### Крок 0. Створити GitHub репозиторій
+### Step 0. Create a GitHub Repository
 
-1. Створіть **приватний** репозиторій на GitHub (наприклад `image_processor`)
-2. На вашому PC, в папці проєкту:
+1. Create a **private** repository on GitHub (e.g., `image_processor`).
+2. On your PC, in the project folder:
 
 ```powershell
-cd C:\Users\Bohdan-PC\Desktop\image_processor
+cd C:\Users\YourName\Desktop\image_processor
 git init
 git remote add origin https://github.com/YOURUSER/image_processor.git
 git add -A
@@ -72,157 +76,145 @@ git branch -M main
 git push -u origin main
 ```
 
-### Крок 1. Налаштувати SSH доступ до Synology
+### Step 1. Set Up SSH Access to Synology
 
-1. Увімкніть SSH на Synology: **Control Panel → Terminal & SNMP → Enable SSH**
-2. На PC згенеруйте SSH ключ (якщо ще немає):
+1. Enable SSH on Synology: **Control Panel → Terminal & SNMP → Enable SSH**
+2. On your PC, generate an SSH key (if you don't have one):
 
 ```powershell
 ssh-keygen -t ed25519
 ```
 
-3. Скопіюйте ключ на Synology:
+3. Copy the public key to Synology:
 
 ```powershell
-type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh admin@100.119.20.23 "mkdir -p ~/.ssh; cat >> ~/.ssh/authorized_keys"
+type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh your-synology-user@<SYNOLOGY_IP> "mkdir -p ~/.ssh; cat >> ~/.ssh/authorized_keys"
 ```
 
-4. Перевірте підключення (без пароля):
+4. Test the connection (should not prompt for password):
 
 ```powershell
-ssh admin@100.119.20.23 "echo OK"
+ssh your-synology-user@<SYNOLOGY_IP> "echo OK"
 ```
 
-### Крок 2. Встановити Git на Synology
+### Step 2. Install Git on Synology
 
-Підключіться по SSH та встановіть Git:
+Connect via SSH and install Git:
 
 ```bash
-# Через Package Center (рекомендовано):
-# Встановіть "Git" або "Git Server" з Package Center UI
+# Via Package Center (recommended):
+# Install "Git" or "Git Server" using Package Center UI.
 
-# Або через opkg (якщо встановлений Entware):
+# Or via opkg (if Entware is installed):
 sudo opkg install git
 ```
 
-Перевірте:
+Verify:
 ```bash
 git --version
 ```
 
-### Крок 3. Налаштувати deploy.ps1
+### Step 3. Configure deploy.ps1
 
-Відкрийте `deploy.ps1` і перевірте параметри:
+Open `deploy.ps1` and ensure parameters are set correctly:
 
 ```powershell
-$SynologyUser = "admin"              # ваш SSH юзер
-$SynologyHost = "100.119.20.23"      # IP Synology (Tailscale або LAN)
+$SynologyUser = "your-synology-user"  # Your Synology SSH user
+$SynologyHost = "<SYNOLOGY_IP>"       # Synology's IP (Tailscale or LAN)
 $RemoteDir = "/volume1/docker/image_processor"
 ```
 
-### Крок 4. Перший деплой
+### Step 4. First Deployment
 
 ```powershell
 .\deploy.ps1
 ```
 
-Після першого деплою — відредагуйте `.env` на Synology:
+After the first deploy, edit the `.env` file on Synology:
 
 ```bash
-ssh admin@100.119.20.23
+ssh your-synology-user@<SYNOLOGY_IP>
 nano /volume1/docker/image_processor/.env
 ```
 
-Заповніть реальні значення:
-```env
-OPENAI_API_KEY=sk-your-real-key
-OPENAI_MODEL=gpt-4.1
-FLASK_ENV=production
-SECRET_KEY=випадковий-рядок-тут
-DB_DRIVER=ODBC Driver 17 for SQL Server
-DB_SERVER=100.119.20.23,1433
-DB_NAME=ProcessedMedia
-DB_USER=SA
-DB_PASSWORD=nP2ks4!00b
-MEDIA_ROOT=/media
-```
+Fill in your real values (API keys, secrets, etc.).
 
-> **MEDIA_ROOT=/media** — обов'язково! Вказує додатку працювати у режимі Synology (веб-браузер папок замість Windows діалогу).
+> **Note:** Set `MEDIA_ROOT=/media` to enable Synology "media mode" (folder browser in web UI).
 
 ---
 
-## Налаштувати volume mounts
+## Configure Volume Mounts
 
-Відкрийте `docker-compose.synology.yml` і вкажіть ваші спільні папки Synology:
+Edit `docker-compose.synology.yml` and define your Synology shared folders:
 
 ```yaml
 volumes:
   - ./data/uploads:/app/uploads
   - ./data/processed:/app/processed
-  # Монтуємо спільні папки Synology → в контейнер під /media/
+  # Mount Synology shared folders into the container at /media/
   - /volume1/photo:/media/photo:ro
-  - /volume1/homes/admin/Photos:/media/my-photos:ro
-  # Додайте скільки потрібно
+  - /volume1/homes/your-synology-user/Photos:/media/my-photos:ro
+  # Add as many as needed
 ```
 
-Кожна папка з фото, яку ви хочете обробляти, повинна бути змонтована під `/media/`.
+Each photo folder you want to process must be mounted under `/media/`.
 
 ---
 
-## Оновлення (щоденний workflow)
+## Updating (Daily Workflow)
 
-Після будь-яких змін у коді на PC:
+After making any code changes on your PC:
 
 ```powershell
 .\deploy.ps1
 ```
 
-Це все! Скрипт сам пушить, підключається до Synology, оновлює код і перезапускає контейнер.
+That's it! The script will push, connect to Synology, update the code, and restart the container automatically.
 
 ---
 
-## Tailscale: доступ до SQL Server
+## Tailscale: Access to SQL Server
 
-### Варіант A — `network_mode: host` (рекомендовано)
-Контейнер використовує мережевий стек Synology, включаючи Tailscale. Нічого додатково налаштовувати не потрібно — просто вкажіть Tailscale IP у `DB_SERVER`.
+### Option A — `network_mode: host` (Recommended)
+The container uses Synology's network stack, including Tailscale. Just specify the Tailscale IP in `DB_SERVER`.
 
-### Варіант B — Bridge мережа
-1. У `docker-compose.synology.yml` закоментуйте `network_mode: host`.
-2. Розкоментуйте `ports` та `extra_hosts`.
-3. Переконайтеся, що маршрутизація Tailscale дозволяє контейнеру доступ до SQL Server.
+### Option B — Bridge Network
+1. In `docker-compose.synology.yml`, comment out `network_mode: host`.
+2. Uncomment the `ports` and `extra_hosts` sections.
+3. Make sure Tailscale routing allows the container to access SQL Server.
 
 ---
 
-## Корисні команди
+## Useful Commands
 
 ```bash
-# SSH на Synology
-ssh admin@100.119.20.23
+# SSH into Synology
+ssh your-synology-user@<SYNOLOGY_IP>
 
-# Переглянути логи контейнера
+# View container logs
 cd /volume1/docker/image_processor
 docker-compose -f docker-compose.synology.yml logs -f
 
-# Перезапустити
+# Restart the app
 docker-compose -f docker-compose.synology.yml restart
 
-# Зупинити
+# Stop the app
 docker-compose -f docker-compose.synology.yml down
 
-# Перезібрати вручну (без deploy.ps1)
+# Manually rebuild and start (without deploy.ps1)
 docker-compose -f docker-compose.synology.yml up -d --build
 ```
 
 ---
 
-## Вирішення проблем
+## Troubleshooting
 
-| Проблема | Рішення |
-|----------|---------|
-| `git: command not found` на Synology | Встановіть Git через Package Center або Entware |
-| `Permission denied (publickey)` | Налаштуйте SSH ключі (Крок 1) |
-| Не бачу папки у браузері | Перевірте volume mounts — папки мають бути під `/media/` |
-| Помилка з'єднання з SQL Server | Переконайтеся, що Tailscale працює і `DB_SERVER` вірний |
-| `ODBC Driver 17` не знайдено | NAS повинен бути на Intel/AMD процесорі (не ARM) |
-| Порт 5050 зайнятий | Змініть порт у Dockerfile та docker-compose |
-| `.env` не знайдено після деплою | Скрипт створить шаблон — відредагуйте його на Synology |
+| Problem                           | Solution                                                       |
+|------------------------------------|----------------------------------------------------------------|
+| `git: command not found`           | Install Git via Package Center or Entware                      |
+| `Permission denied (publickey)`    | Set up SSH keys properly (See "Set Up SSH Access")             |
+| Folders not visible in browser UI  | Check volume mounts—folders must be under `/media/`            |
+| SQL Server connection errors       | Ensure Tailscale works and `DB_SERVER` is correct              |
+| `ODBC Driver 17` not found         | NAS must be Intel/AMD; ARM is not supported                    |
+| Port 5050 already in use           | Change the port in Dockerfile and docker-compose                |
+| `.env` not found after deploy      | Script will create a template—edit it on Synology after first run |
