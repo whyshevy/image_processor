@@ -3,7 +3,7 @@
 ## Архітектура деплою
 
 ```
-  Zdan PC                Git repo (GitHub)              Synology NAS
+     PC                Git repo (GitHub)              Synology NAS
   ┌──────┐   1. push    ┌──────────────┐   3. clone   ┌──────────────┐
   │      │ ──────────►  │              │ ◄──────────  │              │
   │  PC  │              │   GitHub     │              │   Synology   │
